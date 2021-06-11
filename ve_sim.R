@@ -26,7 +26,8 @@ runSimByPropHigh <- function(param) {
   # prev <- param$prev        # needs some more consideration
   # lambda <- beta*c*prev
   # lambda <- param$lambda
-  # 1-exp(-lambda*365)        
+  # 1-exp(-lambda*365)    
+  prop_high <- param$prop_high
   inc_low <- param$inc_low  ## Incidence in low risk group
   lambda <- log(1-inc_low)/-365 ## Back-calculate lambda (infections/day) in low risk group
   epsilon <- param$epsilon  # per contact vaccine efficacy
@@ -35,57 +36,50 @@ runSimByPropHigh <- function(param) {
   nsteps <- param$nsteps  
   
   ## Test different proportions in high risk group
-  prop_highs <- seq(0.05, 0.5, by = 0.05)
-  output <- data.frame(prop_high = rep(prop_highs, each = nsteps), step = 1:nsteps, cum_efficacy = NA, inst_efficacy = NA)
+  output <- data.frame(prop_high = prop_high, step = 1:nsteps, cum_efficacy = NA, inst_efficacy = NA)
+    
+  ## Calculate risk multiplier
+  risk <- uniroot(calc_inc, prop_high = prop_high, lambda = lambda, inc = inc, c(0, 1000), tol = 0.0001)$root
+  print(prop_high)
+  print(risk)
   
-  for(prop_high in prop_highs) {
-    
-    ## Calculate risk multiplier
-    risk <- uniroot(calc_inc, prop_high = prop_high, lambda = lambda, inc = inc, c(0, 1000), tol = 0.0001)$root
-    print(prop_high)
-    print(risk)
-    
-    init <- init.dcm(Sp = n, Ip = 0,
-                     Sv = n, Iv = 0,
-                     Sph = n*prop_high, Iph = 0,    #placebo, high risk
-                     Spl = n*(1-prop_high), Ipl = 0,    #placebo, low risk
-                     Svh = n*prop_high, Ivh = 0,    #vaccine
-                     Svl = n*(1-prop_high), Ivl = 0,    #vaccine
-                     SIp.flow = 0, SIv.flow = 0, 
-                     SIph.flow = 0, SIpl.flow = 0,
-                     SIvh.flow = 0, SIvl.flow = 0)
-    control <- control.dcm(nsteps = nsteps, new.mod = si_ode)
-    
-
-    param <- param.dcm(lambda = lambda, epsilon = epsilon, inc = inc, prop_high = prop_high, risk = risk, n=n)
-    print("before mod")
-    mod <- dcm(param, init, control)
-    print ("after mod")
-    mod
-    
-    mod <- mod.manipulate(mod)
-    
-    output$cum_efficacy[output$prop_high == prop_high] <- mod$epi$VE2.cumul[, 1]
-    output$inst_efficacy[output$prop_high == prop_high] <- mod$epi$VE2.inst[, 1]
-    
-  }
+  init <- init.dcm(Sp = n, Ip = 0,
+                   Sv = n, Iv = 0,
+                   Sph = n*prop_high, Iph = 0,    #placebo, high risk
+                   Spl = n*(1-prop_high), Ipl = 0,    #placebo, low risk
+                   Svh = n*prop_high, Ivh = 0,    #vaccine
+                   Svl = n*(1-prop_high), Ivl = 0,    #vaccine
+                   SIp.flow = 0, SIv.flow = 0, 
+                   SIph.flow = 0, SIpl.flow = 0,
+                   SIvh.flow = 0, SIvl.flow = 0)
+  control <- control.dcm(nsteps = nsteps, new.mod = si_ode)
+  
+  param <- param.dcm(lambda = lambda, epsilon = epsilon, inc = inc, prop_high = prop_high, risk = risk, n=n)
+  print("before mod")
+  mod <- dcm(param, init, control)
+  print ("after mod")
+  mod
+  
+  mod <- mod.manipulate(mod)
+  
+  output$cum_efficacy[output$prop_high == prop_high] <- mod$epi$VE2.cumul[, 1]
+  output$inst_efficacy[output$prop_high == prop_high] <- mod$epi$VE2.inst[, 1]
   
   #browser()
   
   out <- output %>%
     pivot_longer(cols = c("cum_efficacy", "inst_efficacy"), names_to = "metric")
     
-  ve_by_prop_high <- ggplot(data = out, aes(x = step, y = value, group = prop_high)) +
-    geom_line(aes(color = prop_high)) +
+  ve_plot <- ggplot(data = out, aes(x = step, y = value)) +
+    geom_line() +
     geom_abline(intercept = epsilon, slope = 0, linetype = "dashed") +
-    scale_color_viridis(name = "Proportion high risk") +
     labs(x = "Time (days)", y = "Estimated vaccine efficacy") +
     scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, by = 0.1)) +
     facet_wrap(~metric) +
-    ggtitle(paste("Incidence = ", inc, "VE =", epsilon)) +
+    ggtitle(paste("Incidence = ", inc, "VE =", epsilon, "Prop high =", prop_high)) +
     theme_classic()
   
-  return (ve_by_prop_high)
+  return (ve_plot)
 }
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
