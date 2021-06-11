@@ -21,11 +21,14 @@ source("ve_sim_fns.R")
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 runSimByPropHigh <- function(param) {
   
-  beta <- param$beta        # transmission rate (per contact)
-  c <- param$contactRate    # contact rate (contacts per day). Sets underlying risk in low risk group.
-  prev <- param$prev        # needs some more consideration
-  lambda <- beta*c*prev
-  1-exp(-lambda*365)        # Annual risk 
+  # beta <- param$beta        # transmission rate (per contact)
+  # c <- param$contactRate    # contact rate (contacts per day). Sets underlying risk in low risk group.
+  # prev <- param$prev        # needs some more consideration
+  # lambda <- beta*c*prev
+  # lambda <- param$lambda
+  # 1-exp(-lambda*365)        
+  inc_low <- param$inc_low  ## Incidence in low risk group
+  lambda <- log(1-inc_low)/-365 ## Back-calculate lambda (infections/day) in low risk group
   epsilon <- param$epsilon  # per contact vaccine efficacy
   n <- param$sampleSize     # Population (sample) size
   inc <- param$inc          # Overall estimated annual risk to calibrate to
@@ -77,7 +80,7 @@ runSimByPropHigh <- function(param) {
     geom_abline(intercept = epsilon, slope = 0, linetype = "dashed") +
     scale_color_viridis(name = "Proportion high risk") +
     labs(x = "Time (days)", y = "Estimated vaccine efficacy") +
-    scale_y_continuous(limits = c(0, 0.5), breaks = seq(0, 1, by = 0.1)) +
+    scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, by = 0.1)) +
     facet_wrap(~metric) +
     ggtitle(paste("Incidence = ", inc, "VE =", epsilon)) +
     theme_classic()
@@ -90,11 +93,14 @@ runSimByPropHigh <- function(param) {
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 runSimByInc <- function(param) {
   
-  beta <- param$beta        # transmission rate (per contact)
-  c <- param$contactRate    # contact rate (contacts per day). Sets underlying risk in low risk group.
-  prev <- param$prev        # needs some more consideration
-  lambda <- beta*c*prev
-  1-exp(-lambda*365)        # Annual risk 
+  # beta <- param$beta        # transmission rate (per contact)
+  # c <- param$contactRate    # contact rate (contacts per day). Sets underlying risk in low risk group.
+  # prev <- param$prev        # needs some more consideration
+  # lambda <- beta*c*prev
+  # lambda <- param$lambda
+  # 1-exp(-lambda*365)        
+  inc_low <- param$inc_low  ## Incidence in low risk group
+  lambda <- log(1-inc_low)/-365 ## Back-calculate lambda (infections/day) in low risk group
   epsilon <- param$epsilon  # per contact vaccine efficacy
   n <- param$sampleSize     # Sample size
   inc <- param$inc          # Overall estimated annual risk to calibrate to
@@ -158,11 +164,14 @@ runSimByInc <- function(param) {
 # Run simulation with different vaccine efficacies
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 runSimByEpsilon <- function(param) {
-  beta <- param$beta        # transmission rate (per contact)
-  c <- param$contactRate    # contact rate (contacts per day). Sets underlying risk in low risk group.
-  prev <- param$prev        # needs some more consideration
-  lambda <- beta*c*prev
-  1-exp(-lambda*365)        # Annual risk 
+  # beta <- param$beta        # transmission rate (per contact)
+  # c <- param$contactRate    # contact rate (contacts per day). Sets underlying risk in low risk group.
+  # prev <- param$prev        # needs some more consideration
+  # lambda <- beta*c*prev
+  # lambda <- param$lambda
+  # 1-exp(-lambda*365)        
+  inc_low <- param$inc_low  ## Incidence in low risk group
+  lambda <- log(1-inc_low)/-365 ## Back-calculate lambda (infections/day) in low risk group
   epsilon <- param$epsilon  # per contact vaccine efficacy
   n <- param$sampleSize     # Sample size
   inc <- param$inc          # Overall estimated annual risk to calibrate to
@@ -171,7 +180,7 @@ runSimByEpsilon <- function(param) {
   ## Test different vaccine efficacies
   epsilons <- seq(0.1, 0.9, by = 0.1)
   prop_high <- 0.1
-  inc <- 0.03
+  # inc <- 0.03
   
   output <- data.frame(epsilon = rep(epsilons, each = nsteps), step = 1:nsteps, cum_efficacy = NA, inst_efficacy = NA)
   
